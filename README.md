@@ -1,5 +1,3 @@
-Here’s an updated `README.md` file reflecting the new implementations, particularly the `PriorityQueueService` and the use of Redis as the message queue backend, alongside the previous in-memory implementation.
-
 ---
 
 # Message Queues
@@ -103,5 +101,3 @@ mvn package
 To test the `RedisPriorityQueueService`, make sure Redis is running and configured correctly in the `config.properties` file. Unit tests will verify the functionality of the Redis-backed queue.
 
 ---
-
-This updated `README.md` reflects the new `PriorityQueueService` with Redis integration while still covering the original in-memory implementation. The Redis-backed service adds priority-based message retrieval and persistence, suitable for distributed environments.
