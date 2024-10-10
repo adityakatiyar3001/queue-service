@@ -59,52 +59,53 @@ public class RedisPriorityQueueService implements PriorityQueueService {
 
     @Override
     public Message pull(String queueUrl) {
+
         try
         {
-            Set<Tuple> tuples = this.jedis.zrangeWithScores(queueUrl, 0, 0);
-            for (Tuple tuple : tuples) {
-                String deserializedMessage = tuple.getElement();
-                PriorityMessage priorityMessage = gson.fromJson(deserializedMessage, PriorityMessage.class);
+            Set<String> members = this.jedis.zrange(queueUrl, 0, -1);
+            for (String member : members) {
+                PriorityMessage priorityMessage = gson.fromJson(member, PriorityMessage.class);
                 if (priorityMessage != null && priorityMessage.getMessage() != null) {
                     Message msg = priorityMessage.getMessage();
-                    msg.setReceiptId(UUID.randomUUID().toString());
-                    msg.incrementAttempts();
-                    msg.setVisibleFrom(System.nanoTime() + TimeUnit.SECONDS.toNanos(visibilityTimeout));
+                    if(msg.isVisibleAt(System.nanoTime()))   //Currently Visible
+                    {
+                        this.jedis.zrem(queueUrl, gson.toJson(priorityMessage));
+                        msg.setReceiptId(UUID.randomUUID().toString());
+                        msg.incrementAttempts();
+                        msg.setVisibleFrom(System.nanoTime() + TimeUnit.SECONDS.toNanos(visibilityTimeout));
 
-                    //Update message with new entries
-                    priorityMessage = new PriorityMessage(msg, priorityMessage.getPriority(), priorityMessage.getTimestamp());
-                    String updatedMessage = gson.toJson(priorityMessage);
-                    double newScore = score(priorityMessage);
-                    this.jedis.zrem(queueUrl, deserializedMessage);
-                    this.jedis.zadd(queueUrl, newScore, updatedMessage);
+                        //Update message with new entries
+                        PriorityMessage newPriorityMessage = new PriorityMessage(msg, priorityMessage.getPriority(), priorityMessage.getTimestamp());
+                        String updatedMessage = gson.toJson(newPriorityMessage);
 
-                    return new Message(msg.getBody(), msg.getReceiptId());
+                        this.jedis.zadd(queueUrl, score(newPriorityMessage), updatedMessage);
+
+                        return new Message(msg.getBody(), msg.getReceiptId());
+                    }
                 }
             }
-
-        } catch (Exception e) {
+        }
+         catch (Exception e) {
             e.printStackTrace();
         }
         return null;
     }
 
     @Override
-    public void delete(String queueUrl, String receiptId) {
-        try
-        {
-            Set<String> members = this.jedis.zrange(queueUrl, 0, -1);
-            for (String member : members)
-            {
-                PriorityMessage priorityMessage = gson.fromJson(member, PriorityMessage.class);
-                Message msg = priorityMessage.getMessage();
-                if (!msg.isVisibleAt(System.nanoTime()) && msg.getReceiptId() != null && msg.getReceiptId().equals(receiptId)) {
-                    this.jedis.zrem(queueUrl, member);
+    public void delete(String queueUrl, String receiptId){
+            try {
+                Set<String> members = this.jedis.zrange(queueUrl, 0, -1);
+                for (String member : members) {
+                    PriorityMessage priorityMessage = gson.fromJson(member, PriorityMessage.class);
+                    Message msg = priorityMessage.getMessage();
+                    if (!msg.isVisibleAt(System.nanoTime()) && msg.getReceiptId() != null && msg.getReceiptId().equals(receiptId)) {
+                        this.jedis.zrem(queueUrl, member);
+                    }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
-    }
 
     private double score(PriorityMessage priorityMessage)
     {

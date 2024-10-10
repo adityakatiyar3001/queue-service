@@ -2,10 +2,7 @@ package com.example;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -51,11 +48,11 @@ public class InMemoryPriorityQueueService implements PriorityQueueService{
         if(queue == null) return null;
         else if(!queue.isEmpty())
         {
-            PriorityMessage priorityMessage = queue.peek();
-            if (priorityMessage == null) return null;
+            Optional<PriorityMessage> priorityMessage = queue.stream().filter(m -> m.getMessage().isVisibleAt(System.nanoTime())).findFirst();
+            if (priorityMessage.isEmpty()) return null;
             else
             {
-                Message msg = priorityMessage.getMessage();
+                Message msg = priorityMessage.get().getMessage();
                 msg.setReceiptId(UUID.randomUUID().toString());
                 msg.incrementAttempts();
                 msg.setVisibleFrom(System.nanoTime() + TimeUnit.SECONDS.toNanos(visibilityTimeout));

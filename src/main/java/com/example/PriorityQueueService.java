@@ -2,7 +2,7 @@ package com.example;
 
 public interface PriorityQueueService {
 
-    public void push(String queueUrl, String msgBody, int rank);
+    public void push(String queueUrl, String msgBody, int priority);
 
     public Message pull(String queueUrl);
 

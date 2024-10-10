@@ -30,7 +30,7 @@ public class PriorityMessage implements Comparable<PriorityMessage> {
     {
         if (this.priority != other.priority)
         {
-            return Integer.compare(other.priority, this.priority); // higher priority first
+            return Integer.compare(this.priority, other.priority); // higher priority first
         }
         return Long.compare(this.timestamp, other.timestamp); // FCFS
     }

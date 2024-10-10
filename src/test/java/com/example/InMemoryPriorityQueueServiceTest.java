@@ -19,9 +19,9 @@ public class InMemoryPriorityQueueServiceTest {
 
     @Test
     public void testPushAndPullMessagesWithPriority() {
-        queueService.push(testQueueUrl, "Low Priority Message", 1);
+        queueService.push(testQueueUrl, "High Priority Message", 1);
         queueService.push(testQueueUrl, "Medium Priority Message", 2);
-        queueService.push(testQueueUrl, "High Priority Message", 3);
+        queueService.push(testQueueUrl, "Low Priority Message", 3);
 
         // Ensure messages are pulled in priority order (highest priority first)
         assertEquals("High Priority Message", queueService.pull(testQueueUrl).getBody());
@@ -91,4 +91,17 @@ public class InMemoryPriorityQueueServiceTest {
         assertNotNull("Receipt ID should be generated", message.getReceiptId());
         assertFalse("Receipt ID should not be empty", message.getReceiptId().isEmpty());
     }
+    
+    @Test
+    public void testPullAfterVisibilityTimeout() throws InterruptedException {
+        queueService.push(testQueueUrl, "Test Message1", 1);
+        queueService.push(testQueueUrl, "Test Message2", 2);
+
+
+        assertEquals("Test Message1", queueService.pull(testQueueUrl).getBody());
+        Thread.sleep(3050);
+        assertEquals("Test Message1", queueService.pull(testQueueUrl).getBody());
+
+    }
+
 }
